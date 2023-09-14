@@ -1,0 +1,9 @@
+project:
+  output-dir: _docs
+
+website:
+  title: "tidytuesday002"
+  site-url: "https://jbwhit.github.io/tidytuesday002"
+  description: "Economic Guide to Picking a College Major"
+  repo-branch: main
+  repo-url: "https://github.com/jbwhit/tidytuesday002"
