@@ -2,4 +2,6 @@ website:
   sidebar:
     contents:
       - index.ipynb
-      - 00_core.ipynb
+      - 01_first_pass.ipynb
+      - 02_second_pass.ipynb
+      - Untitled.ipynb
