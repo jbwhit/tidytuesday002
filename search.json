@@ -1,0 +1,107 @@
+[
+  {
+    "objectID": "second_pass.html",
+    "href": "second_pass.html",
+    "title": "Second pass",
+    "section": "",
+    "text": "import datetime\nimport hashlib\nimport json\nimport os\nimport re\nimport sys\nimport time\nimport warnings\n\nimport ipywidgets as widgets\nimport matplotlib as mpl\nimport matplotlib.pyplot as plt\nimport numpy as np\nimport pandas as pd\nimport requests\nimport seaborn as sns\nfrom IPython.display import Markdown, display\nfrom matplotlib.ticker import FuncFormatter\nfrom pandas.plotting import register_matplotlib_converters\nfrom scipy.stats import norm\nfrom ydata_profiling import ProfileReport\n\nregister_matplotlib_converters()\nsns.set()\nsns.set_context(\"notebook\")\nplt.rcParams[\"figure.figsize\"] = 10, 6\npd.options.display.max_columns = None\npd.options.display.max_rows = None\npd.options.display.precision = 4\nwarnings.simplefilter(action=\"ignore\", category=FutureWarning)\n\ndollar_formatter = FuncFormatter(lambda x, pos: f\"${x:,.0f}\")\nthousands_formatter = FuncFormatter(lambda x, pos: f\"{x:,.0f}\")"
+  },
+  {
+    "objectID": "second_pass.html#imports",
+    "href": "second_pass.html#imports",
+    "title": "Second pass",
+    "section": "",
+    "text": "import datetime\nimport hashlib\nimport json\nimport os\nimport re\nimport sys\nimport time\nimport warnings\n\nimport ipywidgets as widgets\nimport matplotlib as mpl\nimport matplotlib.pyplot as plt\nimport numpy as np\nimport pandas as pd\nimport requests\nimport seaborn as sns\nfrom IPython.display import Markdown, display\nfrom matplotlib.ticker import FuncFormatter\nfrom pandas.plotting import register_matplotlib_converters\nfrom scipy.stats import norm\nfrom ydata_profiling import ProfileReport\n\nregister_matplotlib_converters()\nsns.set()\nsns.set_context(\"notebook\")\nplt.rcParams[\"figure.figsize\"] = 10, 6\npd.options.display.max_columns = None\npd.options.display.max_rows = None\npd.options.display.precision = 4\nwarnings.simplefilter(action=\"ignore\", category=FutureWarning)\n\ndollar_formatter = FuncFormatter(lambda x, pos: f\"${x:,.0f}\")\nthousands_formatter = FuncFormatter(lambda x, pos: f\"{x:,.0f}\")"
+  },
+  {
+    "objectID": "second_pass.html#functions",
+    "href": "second_pass.html#functions",
+    "title": "Second pass",
+    "section": "Functions",
+    "text": "Functions\n\ndef raw_to_clean(raw):\n    return raw.assign(Major=lambda x: x.Major.str.title())\n\n\ndef plot_median_histogram(df, bins=20):\n    fig, ax = plt.subplots(figsize=(10, 6))\n    fig.patch.set_facecolor(\"w\")\n    sns.histplot(df[\"Median\"], ax=ax)\n    ax.xaxis.set_major_formatter(dollar_formatter)\n\n    ax.set_xlabel(\"Median Salary\")\n    ax.set_ylabel(\"Counts\")\n    ax.set_title(\"Distribution of Median Salaries\")\n    fig.tight_layout()\n\n\ndef plot_median_salary_boxplot(df):\n    order = (\n        df.groupby(\"Major_category\")[\"Median\"]\n        .median()\n        .sort_values(ascending=False)\n        .index\n    )\n    fig, ax = plt.subplots(figsize=(10, 6))\n    fig.patch.set_facecolor(\"w\")\n    sns.boxplot(x=\"Median\", y=\"Major_category\", data=df, ax=ax, order=order)\n    ax.xaxis.set_major_formatter(dollar_formatter)\n    fig.tight_layout()\n    \n\ndef plot_top_n_salaries(df, n, sample_size_threshold):\n    filtered_df = df[df[\"Sample_size\"] &gt;= sample_size_threshold]\n    top_n = filtered_df.nlargest(n, \"Median\").sort_values(\"Median\", ascending=True)\n\n    fig, ax = plt.subplots(figsize=(10, 6))\n    fig.patch.set_facecolor(\"w\")\n\n    ax.errorbar(\n        top_n[\"Median\"],\n        top_n[\"Major\"],\n        xerr=[top_n[\"Median\"] - top_n[\"P25th\"], top_n[\"P75th\"] - top_n[\"Median\"]],\n        fmt=\"o\",\n        color=\"black\",\n        ecolor=\"lightgray\",\n        elinewidth=3,\n        capsize=0,\n    )\n\n    ax.set_xlabel(\"Salary\")\n    ax.set_ylabel(\"Major\")\n    ax.xaxis.set_major_formatter(dollar_formatter)\n    ax.set_title(\"Top \" + str(n) + \" Highest Median Salaries by Major\")\n    fig.tight_layout()\n\n\ndef plot_major_popularity(df):\n    fig, ax = plt.subplots(figsize=(10, 6))\n    fig.patch.set_facecolor(\"w\")\n\n    major_popularity = df.groupby(\"Major_category\")[\"Total\"].sum().reset_index()\n    major_popularity[\"Total\"] = major_popularity[\"Total\"] / 1000  # Scaling down by 1000\n    major_popularity = major_popularity.sort_values(by=\"Total\", ascending=False)\n\n    sns.barplot(x=\"Total\", y=\"Major_category\", data=major_popularity, ax=ax)\n    ax.set_title(\"Popularity of Each Major Category\")\n    ax.set_xlabel(\"Total Number of Students (in thousands)\")\n    ax.set_ylabel(\"Major Category\")\n    ax.xaxis.set_major_formatter(thousands_formatter)\n    fig.tight_layout()\n\ndef plot_gender_breakdown(df):\n    fig, ax = plt.subplots(figsize=(10, 6))\n    fig.patch.set_facecolor(\"w\")\n\n    top_majors = df.nlargest(10, 'Total')['Major']\n    df_top_majors = df[df['Major'].isin(top_majors)].sort_values(\"Total\", ascending=False)\n\n    sns.barplot(x='Count', y='Major', hue='Gender', data=df_top_majors.melt(id_vars=['Major', 'Total'], value_vars=['Men', 'Women'], var_name='Gender', value_name='Count'), ax=ax)\n    ax.set_xlabel(\"Counts\")\n    ax.set_ylabel(\"Major\")\n    ax.set_title(\"Gender Breakdown for Most Popular Majors\")\n    fig.tight_layout()"
+  },
+  {
+    "objectID": "second_pass.html#data",
+    "href": "second_pass.html#data",
+    "title": "Second pass",
+    "section": "Data",
+    "text": "Data\n\nraw = pd.read_csv(\n    \"https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2018/2018-10-16/recent-grads.csv\"\n)\n\n\nCleaning\n\ndf = raw_to_clean(raw)\n\n\ndf.head()\n\n\n\n\n\n\n\n\n\n\n\nRank\nMajor_code\nMajor\nTotal\nMen\nWomen\nMajor_category\nShareWomen\nSample_size\nEmployed\nFull_time\nPart_time\nFull_time_year_round\nUnemployed\nUnemployment_rate\nMedian\nP25th\nP75th\nCollege_jobs\nNon_college_jobs\nLow_wage_jobs\n\n\n\n\n0\n1\n2419\nPetroleum Engineering\n2339.0\n2057.0\n282.0\nEngineering\n0.1206\n36\n1976\n1849\n270\n1207\n37\n0.0184\n110000\n95000\n125000\n1534\n364\n193\n\n\n1\n2\n2416\nMining And Mineral Engineering\n756.0\n679.0\n77.0\nEngineering\n0.1019\n7\n640\n556\n170\n388\n85\n0.1172\n75000\n55000\n90000\n350\n257\n50\n\n\n2\n3\n2415\nMetallurgical Engineering\n856.0\n725.0\n131.0\nEngineering\n0.1530\n3\n648\n558\n133\n340\n16\n0.0241\n73000\n50000\n105000\n456\n176\n0\n\n\n3\n4\n2417\nNaval Architecture And Marine Engineering\n1258.0\n1123.0\n135.0\nEngineering\n0.1073\n16\n758\n1069\n150\n692\n40\n0.0501\n70000\n43000\n80000\n529\n102\n0\n\n\n4\n5\n2405\nChemical Engineering\n32260.0\n21239.0\n11021.0\nEngineering\n0.3416\n289\n25694\n23170\n5180\n16697\n1672\n0.0611\n65000\n50000\n75000\n18314\n4440\n972"
+  },
+  {
+    "objectID": "second_pass.html#plots",
+    "href": "second_pass.html#plots",
+    "title": "Second pass",
+    "section": "Plots",
+    "text": "Plots\n\nWhat is the distribution of median salaries across all majors?\n\nplot_median_histogram(df, bins=25)\n\n\n\n\n\n\n\n\n\nWhat is the distribution of salaries within each major category?\n\nplot_median_salary_boxplot(df)\n\n\n\n\n\n\n\n\n\nWhat is the popularity of each major category?\n\nplot_major_popularity(df)\n\n\n\n\n\n\n\n\n\nWhat are the top 20 majors by median salaries?\n\nplot_top_n_salaries(df, 20, 100)\n\n\n\n\n\n\n\n\n\nWhat is the gender breakdown for most popular majors?\n\nplot_gender_breakdown(df)"
+  },
+  {
+    "objectID": "second_pass.html#cleanup",
+    "href": "second_pass.html#cleanup",
+    "title": "Second pass",
+    "section": "Cleanup",
+    "text": "Cleanup"
+  },
+  {
+    "objectID": "first_pass.html",
+    "href": "first_pass.html",
+    "title": "First pass",
+    "section": "",
+    "text": "YouTubeVideo(\"jHXTzL5tyG4\", width=1920 / 4, height=1080/4)"
+  },
+  {
+    "objectID": "first_pass.html#imports",
+    "href": "first_pass.html#imports",
+    "title": "First pass",
+    "section": "Imports",
+    "text": "Imports\n\nsource\n\nfoo\n\n foo ()\n\n\nimport datetime\nimport hashlib\nimport json\nimport os\nimport re\nimport sys\nimport time\nimport warnings\n\nimport ipywidgets as widgets\nimport matplotlib as mpl\nimport matplotlib.pyplot as plt\nimport numpy as np\nimport pandas as pd\nimport requests\nfrom matplotlib.ticker import FuncFormatter\nfrom pandas.plotting import register_matplotlib_converters\nfrom scipy.stats import norm\n\nregister_matplotlib_converters()\nimport seaborn as sns\nfrom IPython.display import Markdown, display\n\nsns.set()\nsns.set_context(\"poster\", font_scale=1.3)\nplt.rcParams[\"figure.figsize\"] = 10, 6\npd.options.display.max_columns = None\npd.options.display.max_rows = None\npd.options.display.precision = 4\nwarnings.simplefilter(action=\"ignore\", category=FutureWarning)\n\nfrom ydata_profiling import ProfileReport"
+  },
+  {
+    "objectID": "first_pass.html#functions",
+    "href": "first_pass.html#functions",
+    "title": "First pass",
+    "section": "Functions",
+    "text": "Functions\n\ndef raw_to_clean(raw):\n    return (\n        raw.assign(Major=lambda x: x.Major.str.title())\n    )\n\ndef plot_top_n_salaries(df, top_n):\n    df_sorted = df.nlargest(top_n, 'Median')\n    df_plot = df_sorted[['Major', 'P25th', 'Median', 'P75th']]\n    df_melted = df_plot.melt(id_vars='Major', value_vars=['P25th', 'Median', 'P75th'])\n\n    fig, ax = plt.subplots(figsize=(20, 8))\n    fig.patch.set_facecolor('w')\n\n    sns.barplot(x='value', y='Major', hue='variable', data=df_melted, ax=ax)\n    ax.set_title('P25, Median, and P75 Salaries for Top {} Majors'.format(top_n))\n    ax.set_xlabel('Salary')\n    ax.set_ylabel('Major')\n    box = ax.get_position()\n    ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])\n    ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))\n\n    fig.tight_layout()"
+  },
+  {
+    "objectID": "first_pass.html#data",
+    "href": "first_pass.html#data",
+    "title": "First pass",
+    "section": "Data",
+    "text": "Data\n\nraw = pd.read_csv(\"https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2018/2018-10-16/recent-grads.csv\")\n\n\nCleaning\n\ndf = raw_to_clean(raw)\n\ndf.head()\n\n\n\n\n\n\n\n\n\n\n\nRank\nMajor_code\nMajor\nTotal\nMen\nWomen\nMajor_category\nShareWomen\nSample_size\nEmployed\nFull_time\nPart_time\nFull_time_year_round\nUnemployed\nUnemployment_rate\nMedian\nP25th\nP75th\nCollege_jobs\nNon_college_jobs\nLow_wage_jobs\n\n\n\n\n0\n1\n2419\nPetroleum Engineering\n2339.0\n2057.0\n282.0\nEngineering\n0.1206\n36\n1976\n1849\n270\n1207\n37\n0.0184\n110000\n95000\n125000\n1534\n364\n193\n\n\n1\n2\n2416\nMining And Mineral Engineering\n756.0\n679.0\n77.0\nEngineering\n0.1019\n7\n640\n556\n170\n388\n85\n0.1172\n75000\n55000\n90000\n350\n257\n50\n\n\n2\n3\n2415\nMetallurgical Engineering\n856.0\n725.0\n131.0\nEngineering\n0.1530\n3\n648\n558\n133\n340\n16\n0.0241\n73000\n50000\n105000\n456\n176\n0\n\n\n3\n4\n2417\nNaval Architecture And Marine Engineering\n1258.0\n1123.0\n135.0\nEngineering\n0.1073\n16\n758\n1069\n150\n692\n40\n0.0501\n70000\n43000\n80000\n529\n102\n0\n\n\n4\n5\n2405\nChemical Engineering\n32260.0\n21239.0\n11021.0\nEngineering\n0.3416\n289\n25694\n23170\n5180\n16697\n1672\n0.0611\n65000\n50000\n75000\n18314\n4440\n972"
+  },
+  {
+    "objectID": "first_pass.html#data-visualization-plots",
+    "href": "first_pass.html#data-visualization-plots",
+    "title": "First pass",
+    "section": "Data Visualization Plots",
+    "text": "Data Visualization Plots\n\nPopularity of each Major Category\n\nfig, ax = plt.subplots(figsize=(16, 12))\nfig.patch.set_facecolor('w')\n\nmajor_popularity = df.groupby('Major_category')['Total'].sum().reset_index()\nmajor_popularity = major_popularity.sort_values(by='Total', ascending=False)\n\nsns.barplot(x='Total', y='Major_category', data=major_popularity, ax=ax)\nax.set_title('Popularity of Each Major Category')\nax.set_xlabel('Total Number of Students')\nax.set_ylabel('Major Category')\n\nfig.tight_layout()\n\n\n\n\n\n\n\n\n\nTop N Median salaries\n\nplot_top_n_salaries(df, 5)\n\n\n\n\n\n\n\n\nplt.hist(df['Median'], bins=10, edgecolor='black')\nplt.title('Distribution of Median Salaries')\nplt.xlabel('Median Salary')\nplt.ylabel('Frequency')\nplt.grid(axis='y')\nplt.show()"
+  },
+  {
+    "objectID": "first_pass.html#ydata-profile",
+    "href": "first_pass.html#ydata-profile",
+    "title": "First pass",
+    "section": "Ydata Profile",
+    "text": "Ydata Profile\n\nprofile = ProfileReport(df, title='College Data', config_file=\"/Users/jonathan/Downloads/config_minimal.yaml\")\n\nprofile\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n&lt;class 'ydata_profiling.profile_report.ProfileReport'&gt;.__repr__ returned empty string"
+  },
+  {
+    "objectID": "first_pass.html#cleanup",
+    "href": "first_pass.html#cleanup",
+    "title": "First pass",
+    "section": "Cleanup",
+    "text": "Cleanup"
+  },
+  {
+    "objectID": "index.html",
+    "href": "index.html",
+    "title": "TidyTuesday Exploratory Data Analysis",
+    "section": "",
+    "text": "YouTubeVideo(\"jHXTzL5tyG4\", width=1920 / 4, height=1080/4)\n\n\n        \n        \n\n\n\nhttps://github.com/rfordatascience/tidytuesday/tree/master/data/2018/2018-10-16\nDavid Robinson: https://youtu.be/nx5yhXAQLxw\n\n\n\n1+1\n\n2"
+  },
+  {
+    "objectID": "index.html#first-pass",
+    "href": "index.html#first-pass",
+    "title": "TidyTuesday Exploratory Data Analysis",
+    "section": "",
+    "text": "YouTubeVideo(\"jHXTzL5tyG4\", width=1920 / 4, height=1080/4)\n\n\n        \n        \n\n\n\nhttps://github.com/rfordatascience/tidytuesday/tree/master/data/2018/2018-10-16\nDavid Robinson: https://youtu.be/nx5yhXAQLxw\n\n\n\n1+1\n\n2"
+  }
+]
